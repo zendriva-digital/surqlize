@@ -1,0 +1,28 @@
+name: build dist on zero
+
+on:
+  push:
+    branches: [zero]
+    paths-ignore: ['dist/**']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: commit dist
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f dist
+          git diff --cached --quiet && exit 0
+          git commit -m "build: dist for $(git rev-parse --short HEAD)"
+          git push
