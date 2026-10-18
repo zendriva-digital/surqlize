@@ -91,6 +91,24 @@ describe("Spelling differences that mean nothing", () => {
 		).toBe(true);
 	});
 
+	test("IN is stored as INSIDE, and NOT IN as NOT INSIDE", () => {
+		expect(
+			equivalent(
+				"DEFINE FUNCTION fn::can($cap: string) -> bool { RETURN $cap IN $auth.caps OR $cap NOT IN $auth.denied; };",
+				"DEFINE FUNCTION fn::can($cap: string) -> bool { RETURN $cap INSIDE $auth.caps OR $cap NOT INSIDE $auth.denied; } PERMISSIONS FULL",
+			),
+		).toBe(true);
+	});
+
+	test("a THROW used as a value reads back parenthesised", () => {
+		expect(
+			equivalent(
+				"DEFINE ACCESS a ON DATABASE TYPE RECORD AUTHENTICATE { RETURN $u ?? THROW 'No active session'; } DURATION FOR TOKEN 1h, FOR SESSION 1h;",
+				"DEFINE ACCESS a ON DATABASE TYPE RECORD AUTHENTICATE { RETURN $u ?? (THROW 'No active session'); } DURATION FOR TOKEN 1h, FOR SESSION 1h",
+			),
+		).toBe(true);
+	});
+
 	test("an apostrophe inside a literal is left alone", () => {
 		// Rewriting quotes around a string containing one would change it
 		expect(
