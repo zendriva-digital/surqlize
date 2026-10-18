@@ -109,6 +109,21 @@ describe("Spelling differences that mean nothing", () => {
 		).toBe(true);
 	});
 
+	test("a field named permissions is not taken for the PERMISSIONS clause", () => {
+		expect(
+			equivalent(
+				"DEFINE FIELD permissions ON TABLE member COMPUTED array::sort($this.grants);",
+				"DEFINE FIELD permissions ON member COMPUTED array::distinct($this.grants) PERMISSIONS FULL",
+			),
+		).toBe(false);
+		expect(
+			equivalent(
+				"DEFINE FIELD permissions ON TABLE member COMPUTED array::sort($this.grants);",
+				"DEFINE FIELD permissions ON member COMPUTED array::sort($this.grants) PERMISSIONS FULL",
+			),
+		).toBe(true);
+	});
+
 	test("an apostrophe inside a literal is left alone", () => {
 		// Rewriting quotes around a string containing one would change it
 		expect(
