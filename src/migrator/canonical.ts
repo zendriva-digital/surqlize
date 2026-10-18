@@ -211,8 +211,10 @@ function extractTrailingClauses(statement: string): {
 	permissions: string | null;
 } {
 	const comment = statement.match(/\sCOMMENT\s+('[^']*'|"[^"]*")/i);
+	// A clause starts with FULL, NONE, FOR or WHERE; a field named `permissions`
+	// is followed by ON and must not be taken for one.
 	const permissions = statement.match(
-		/\sPERMISSIONS\s+(.+?)(?=\sCOMMENT\s|$)/i,
+		/\sPERMISSIONS\s+(?=(?:FULL|NONE|FOR|WHERE)\b)(.+?)(?=\sCOMMENT\s|$)/i,
 	);
 
 	let body = statement;
