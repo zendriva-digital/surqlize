@@ -4275,8 +4275,29 @@ function diffFields(schema, current, options, render) {
       });
     }
   }
+  for (const [name, define, overwrite] of rawComputedFields(schema)) {
+    const stored = current.fields[name];
+    if (!stored) {
+      changes.push({
+        kind: "field.create",
+        target: `${schema.tb}.${name}`,
+        up: [define],
+        down: [`REMOVE FIELD ${name} ON TABLE ${schema.tb};`]
+      });
+    } else if (!same(define, stored)) {
+      changes.push({
+        kind: "field.modify",
+        target: `${schema.tb}.${name}`,
+        up: [overwrite],
+        down: [`${stored};`]
+      });
+    }
+  }
   if (!options.removeMissing) return changes;
-  const declaredNames = new Set(fields.map((f) => storedName(f.name)));
+  const declaredNames = /* @__PURE__ */ new Set([
+    ...fields.map((f) => storedName(f.name)),
+    ...rawComputedFields(schema).map(([name]) => name)
+  ]);
   changes.push(
     ...removeUndeclaredFields(schema, current, declaredNames, renamedFrom)
   );
@@ -4440,6 +4461,9 @@ function defineSchemaStatements(schema, render) {
   for (const field of definableFields(schema)) {
     statements.push(defineField(schema.tb, field, render));
   }
+  for (const [, define] of rawComputedFields(schema)) {
+    statements.push(define);
+  }
   for (const [name, index] of Object.entries(schema.ddl.indexes ?? {})) {
     statements.push(defineIndex(schema.tb, { name, ...index }));
   }
@@ -4450,12 +4474,26 @@ function defineSchemaStatements(schema, render) {
 }
 function definableFields(schema) {
   const declared = schema._fields;
+  const computed = new Set(
+    "computedFields" in schema ? schema.computedFields : []
+  );
   return flattenFields(schema.fields).filter((field) => {
     if (schema instanceof EdgeSchema && (field.name === "in" || field.name === "out")) {
       return false;
     }
+    if (computed.has(field.name.split(/[.[]/)[0])) return false;
     return !(field.name === "id" && !("id" in declared));
   });
+}
+function rawComputedFields(schema) {
+  if (!("rawComputedStatements" in schema)) return [];
+  const plain = schema.rawComputedStatements(false);
+  const overwritten = schema.rawComputedStatements(true);
+  return plain.map(([name, sql], index) => [
+    name,
+    sql,
+    overwritten[index]?.[1] ?? sql
+  ]);
 }
 function storedName(name) {
   return name.replace(/\[\*\]/g, ".*");
