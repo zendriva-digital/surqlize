@@ -132,7 +132,7 @@ function matchParen(input, openIndex) {
 function extractTrailingClauses(statement) {
   const comment = statement.match(/\sCOMMENT\s+('[^']*'|"[^"]*")/i);
   const permissions = statement.match(
-    /\sPERMISSIONS\s+(.+?)(?=\sCOMMENT\s|$)/i
+    /\sPERMISSIONS\s+(?=(?:FULL|NONE|FOR|WHERE)\b)(.+?)(?=\sCOMMENT\s|$)/i
   );
   let body = statement;
   if (comment) body = body.replace(comment[0], "");
